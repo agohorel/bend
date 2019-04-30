@@ -2,11 +2,11 @@ PImage img;
 PFont mono;
 byte[] data;
 String in, out, myText, myText2, myText3;
-int dayInt, hourInt, minuteInt, secondInt, toggle, loopCount;
+int dayInt, hourInt, minuteInt, secondInt, loopCount;
+boolean bool = false;
 
 void setup() {
   size(1280, 720, P2D);
-  toggle = -1;
   loopCount = 0;
   out = "/home/pi/Desktop/alephBend/data/capture/output.jpg";
   mono = createFont("DejaVuSansMono.ttf", 16);
@@ -16,7 +16,7 @@ void setup() {
 
 void draw() {
 
-  if (toggle == -1) {
+  if (bool == false) {
     background(255);
     fill(#767676);
     textSize(32);
@@ -33,68 +33,68 @@ void draw() {
   //code after the delay in the mousePressed function runs its course. 
   //if we don't have the photo from raspistill yet, the following code will fail and 
   //throw a null pointer exception.  
-  if (toggle == 1) {
+  if (bool == true) {
     //load the capture photo's bytes into array
-   try {
-    data = loadBytes(in);
+    try {
+      data = loadBytes(in);
 
-    //create PImage 
-    img = loadImage(in);
+      //create PImage 
+      img = loadImage(in);
 
-    //save the data array to new file
+      //save the data array to new file
 
       saveBytes(out, data);
 
       //load those bytes back into the data array so we don't break the original
       data = loadBytes(out);
-  
-    //this for loop controls the number of iterations where we write random bytes
-    //of value 0-data.length into the array. the loc variable is where we define the 
-    //header length so we don't immediately break the file. important!
-    for (int i = 0; i < 32; i++) {
-      int loc = (int)random(256, data.length);
-      data[loc] = (byte)random(data.length);
+
+      //this for loop controls the number of iterations where we write random bytes
+      //of value 0-data.length into the array. the loc variable is where we define the 
+      //header length so we don't immediately break the file. important!
+      for (int i = 0; i < 32; i++) {
+        int loc = (int)random(256, data.length);
+        data[loc] = (byte)random(data.length);
+      }
     }
-   }
-  
-  catch(Exception e1) {
-    toggle = -1;
-    loopCount = 0;
+
+    catch(Exception e1) {
+      bool = false;
+      loopCount = 0;
+    }
+
+    //save these new mangled bytes into the data array
+    try {
+      saveBytes(out, data);
+
+
+      //make PImage of mangled image
+      img = loadImage(out);
+
+      //display the mangled image. 
+      image(img, 0, 0);
+    }
+
+    catch(Exception e2) {
+      bool = false;
+      loopCount = 0;
+    }
+
+    //each time the draw loop concludes, the entire process starts again using the 
+    //original (non-bent) image. this is so you can see the fruits of the random seeds
+    //changing each time, but also so you can (generally speaking) just leave the image
+    //looping over and over like animation without it getting fatally broken.
+    loopCount++;
+    println(loopCount);
+
+    if (loopCount >= 4) {
+      bool = !bool;
+      loopCount = 0;
+    }
+
+    if (loopCount <= 4) {
+      saveFrame(in + "_glitched" + "_" + loopCount + ".jpg");
+    }
   }
-
-  //save these new mangled bytes into the data array
-  try {
-    saveBytes(out, data);
-
-
-    //make PImage of mangled image
-    img = loadImage(out);
-
-    //display the mangled image. 
-    image(img, 0, 0);
-  }
-
-  catch(Exception e2) {
-    toggle = -1;
-    loopCount = 0;
-  }
-
-  //each time the draw loop concludes, the entire process starts again using the 
-  //original (non-bent) image. this is so you can see the fruits of the random seeds
-  //changing each time, but also so you can (generally speaking) just leave the image
-  //looping over and over like animation without it getting fatally broken.
-  loopCount++;
-  println(loopCount);
-
-  if (loopCount >= 4) {
-    toggle = toggle * -1;
-    loopCount = 0;
-  }
-
-  if (loopCount <= 4) {
-    saveFrame(in + "_glitched" + "_" + loopCount + ".jpg");
-  }
-}
 }
 
 void mousePressed() {
@@ -118,16 +118,16 @@ void mousePressed() {
     minute = "0" + minute;
   }
 
-  //secondInt = second();
-  //String second = nf(secondInt);
-  //if (second.length() < 2) {
-  //  second = "0" + second;
-  //}
+  secondInt = second();
+  String second = nf(secondInt);
+  if (second.length() < 2) {
+    second = "0" + second;
+  }
 
   //construct timestamp and assign it as the input file. note this has to precisely
   //match the actual photo taken by raspistill or it won't load anything. 
-  in = "/home/pi/Desktop/alephBend/data/capture/" + day + "_" + hour + minute + ".jpg";
-  
+  in = "/home/pi/Desktop/alephBend/data/capture/" + day + "_" + hour + minute + second + ".jpg";
+
   //launch a .desktop file which in turns launches a bash script which in turn launches
   //the command line raspistill camera app and tells it to take a picture and save it 
   //in this program's data folder with the filename being the timestamp (D:H:M). 
@@ -137,8 +137,8 @@ void mousePressed() {
   //to do their jobs. the default raspistill timer is 5000ms. i added a 5 sec buffer 
   //for the time it takes to save the file.
   delay(10000);
-  
+
   //invert the toggle state 
-  toggle = toggle * -1;
-  println(in, toggle);
+  bool = !bool;
+  println(in, bool);
 }

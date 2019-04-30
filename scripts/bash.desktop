@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=bash.desktop
+Comment=picam
+Exec=/home/pi/Desktop/alephBend/scripts/bash.sh
+Terminal=false
+Type=Application
